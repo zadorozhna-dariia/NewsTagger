@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 630" width="1000" height="630" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#111133"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="630" fill="#ffffff"/>
+
+  <!-- Marks: version point and quality gate -->
+  <line x1="265" y1="116" x2="265" y2="185" stroke="#111133" stroke-width="1.5"/>
+  <circle cx="265" cy="78" r="38" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <text x="265" y="68" text-anchor="middle" font-size="12" fill="#111133">① version</text>
+  <text x="265" y="83" text-anchor="middle" font-size="12" fill="#111133">point</text>
+  <text x="265" y="99" text-anchor="middle" font-size="10" fill="#555566">DVC snapshot</text>
+
+  <line x1="560" y1="116" x2="560" y2="185" stroke="#111133" stroke-width="1.5"/>
+  <circle cx="560" cy="78" r="38" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <text x="560" y="68" text-anchor="middle" font-size="12" fill="#111133">② quality</text>
+  <text x="560" y="83" text-anchor="middle" font-size="12" fill="#111133">gate</text>
+  <text x="560" y="99" text-anchor="middle" font-size="10" fill="#555566">fail → stop + alert</text>
+
+  <!-- Row 1 -->
+  <rect x="30" y="140" width="200" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <rect x="30" y="140" width="200" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="130" y="160" text-anchor="middle" font-size="14" fill="#111133">1 Data ingestion</text>
+  <text x="130" y="190" text-anchor="middle" font-size="11" fill="#333344">Airflow monthly ingest</text>
+  <text x="130" y="206" text-anchor="middle" font-size="11" fill="#333344">replayed batch → MinIO raw/</text>
+
+  <rect x="300" y="140" width="220" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <rect x="300" y="140" width="220" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="410" y="160" text-anchor="middle" font-size="14" fill="#111133">2 Preprocessing</text>
+  <text x="410" y="190" text-anchor="middle" font-size="11" fill="#333344">clean text, category mapping,</text>
+  <text x="410" y="206" text-anchor="middle" font-size="11" fill="#333344">drop link → MinIO clean/</text>
+
+  <rect x="600" y="140" width="240" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <rect x="600" y="140" width="240" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="720" y="160" text-anchor="middle" font-size="14" fill="#111133">3 Feature store (Feast)</text>
+  <rect x="613" y="178" width="104" height="34" fill="#dff0fb" stroke="#1a3fae" stroke-width="1"/>
+  <text x="665" y="192" text-anchor="middle" font-size="11" fill="#111133">offline</text>
+  <text x="665" y="206" text-anchor="middle" font-size="10" fill="#333344">MinIO</text>
+  <rect x="723" y="178" width="104" height="34" fill="#dff0fb" stroke="#1a3fae" stroke-width="1"/>
+  <text x="775" y="192" text-anchor="middle" font-size="11" fill="#111133">online</text>
+  <text x="775" y="206" text-anchor="middle" font-size="10" fill="#333344">PostgreSQL</text>
+
+  <line x1="230" y1="185" x2="298" y2="185" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <circle cx="265" cy="185" r="4" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <line x1="520" y1="185" x2="598" y2="185" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <circle cx="560" cy="185" r="4" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+
+  <!-- Mark: paths diverge -->
+  <line x1="884" y1="262" x2="840" y2="205" stroke="#111133" stroke-width="1" stroke-dasharray="4 3"/>
+  <circle cx="922" cy="262" r="38" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <text x="922" y="254" text-anchor="middle" font-size="12" fill="#111133">③ paths</text>
+  <text x="922" y="269" text-anchor="middle" font-size="12" fill="#111133">diverge</text>
+  <text x="922" y="284" text-anchor="middle" font-size="10" fill="#555566">offline / online</text>
+
+  <!-- Training path (offline) -->
+  <path d="M665 212 V262 H130 V318" fill="none" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="400" y="254" text-anchor="middle" font-size="12" fill="#111133">training path (offline store)</text>
+
+  <!-- Serving path (online) -->
+  <line x1="775" y1="212" x2="775" y2="318" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="783" y="275" font-size="12" fill="#111133">serving path</text>
+  <text x="783" y="290" font-size="12" fill="#111133">(online store)</text>
+
+  <!-- Row 2 -->
+  <rect x="30" y="320" width="200" height="100" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <rect x="30" y="320" width="200" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="130" y="340" text-anchor="middle" font-size="14" fill="#111133">4 Training pipeline</text>
+  <text x="130" y="374" text-anchor="middle" font-size="11" fill="#333344">Airflow monthly retrain</text>
+  <text x="130" y="390" text-anchor="middle" font-size="11" fill="#333344">TF-IDF + logistic regression</text>
+  <text x="130" y="406" text-anchor="middle" font-size="11" fill="#333344">time split, vs champion</text>
+
+  <rect x="300" y="320" width="220" height="100" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <rect x="300" y="320" width="220" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="410" y="340" text-anchor="middle" font-size="14" fill="#111133">5 Registry and deploy</text>
+  <text x="410" y="382" text-anchor="middle" font-size="11" fill="#333344">MLflow registry</text>
+  <text x="410" y="398" text-anchor="middle" font-size="11" fill="#333344">alias champion, manual promotion</text>
+
+  <rect x="600" y="320" width="240" height="100" fill="#1a3fae" stroke="#111133" stroke-width="1.5"/>
+  <rect x="600" y="320" width="240" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="720" y="340" text-anchor="middle" font-size="14" fill="#111133">6 Inference</text>
+  <rect x="613" y="362" width="104" height="30" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+  <text x="665" y="381" text-anchor="middle" font-size="11" fill="#111133">real-time API</text>
+  <rect x="723" y="362" width="104" height="30" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+  <text x="775" y="381" text-anchor="middle" font-size="11" fill="#111133">nightly batch</text>
+  <text x="665" y="410" text-anchor="middle" font-size="10" fill="#ffffff">on Minikube</text>
+  <text x="775" y="410" text-anchor="middle" font-size="10" fill="#ffffff">Airflow</text>
+
+  <rect x="880" y="320" width="110" height="100" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <rect x="880" y="320" width="110" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="935" y="340" text-anchor="middle" font-size="14" fill="#111133">Consumer</text>
+  <text x="935" y="382" text-anchor="middle" font-size="11" fill="#333344">CMS, editors</text>
+  <text x="935" y="398" text-anchor="middle" font-size="11" fill="#333344">top-3</text>
+
+  <line x1="230" y1="385" x2="298" y2="385" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="264" y="376" text-anchor="middle" font-size="11" fill="#111133">register</text>
+  <line x1="520" y1="385" x2="598" y2="385" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="559" y="376" text-anchor="middle" font-size="11" fill="#111133">by alias</text>
+  <line x1="840" y1="385" x2="878" y2="385" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Row 3: monitoring -->
+  <line x1="720" y1="420" x2="720" y2="478" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="728" y="453" font-size="12" fill="#111133">inputs, predictions, labels</text>
+
+  <rect x="300" y="480" width="540" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+  <rect x="300" y="480" width="540" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="570" y="500" text-anchor="middle" font-size="14" fill="#111133">7 Monitoring and retraining loop</text>
+  <text x="570" y="530" text-anchor="middle" font-size="11" fill="#333344">Evidently + Prometheus/Grafana: drift, confidence, override rate, freshness</text>
+  <text x="570" y="546" text-anchor="middle" font-size="11" fill="#333344">alert → ML engineer; retrain early when a threshold is crossed</text>
+
+  <path d="M300 520 H130 V422" fill="none" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="215" y="512" text-anchor="middle" font-size="12" fill="#111133">trigger retraining</text>
+
+  <text x="500" y="605" text-anchor="middle" font-size="12" letter-spacing="2" fill="#666677">SEVEN LAYERS, TWO PATHS FROM ONE FEATURE STORE, ONE LOOP BACK</text>
+</svg>

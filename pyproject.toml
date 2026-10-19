@@ -1,0 +1,23 @@
+[project]
+name = "mlops1"
+version = "0.1.0"
+description = "KSE MLOps course project: one ML system built over five labs"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff==0.14.*",
+    "pre-commit>=4.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]

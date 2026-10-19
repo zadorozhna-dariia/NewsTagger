@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 460" width="1000" height="460" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#111133"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="460" fill="#ffffff"/>
+
+  <!-- Left: sources -->
+  <g>
+    <rect x="20" y="110" width="200" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+    <rect x="20" y="110" width="200" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+    <text x="120" y="130" text-anchor="middle" font-size="15" fill="#111133">CMS article feed</text>
+    <text x="120" y="170" text-anchor="middle" font-size="12" fill="#555566">replayed HuffPost dataset</text>
+  </g>
+  <g>
+    <rect x="20" y="270" width="200" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+    <rect x="20" y="270" width="200" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+    <text x="120" y="290" text-anchor="middle" font-size="15" fill="#111133">Editors via CMS</text>
+    <text x="120" y="330" text-anchor="middle" font-size="12" fill="#555566">label source</text>
+  </g>
+
+  <!-- Centre: system -->
+  <rect x="420" y="50" width="200" height="340" fill="#1a3fae" stroke="#111133" stroke-width="1.5"/>
+  <rect x="420" y="50" width="200" height="36" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+  <text x="520" y="73" text-anchor="middle" font-size="16" fill="#111133">NewsTagger</text>
+  <text x="520" y="225" text-anchor="middle" font-size="14" fill="#ffffff">ingests, trains, serves,</text>
+  <text x="520" y="245" text-anchor="middle" font-size="14" fill="#ffffff">monitors</text>
+
+  <!-- Right: consumers and alert recipient -->
+  <g>
+    <rect x="800" y="60" width="180" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+    <rect x="800" y="60" width="180" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+    <text x="890" y="80" text-anchor="middle" font-size="15" fill="#111133">CMS</text>
+    <text x="890" y="120" text-anchor="middle" font-size="12" fill="#555566">section routing</text>
+  </g>
+  <g>
+    <rect x="800" y="180" width="180" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+    <rect x="800" y="180" width="180" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+    <text x="890" y="200" text-anchor="middle" font-size="15" fill="#111133">Editors</text>
+    <text x="890" y="240" text-anchor="middle" font-size="12" fill="#555566">article form</text>
+  </g>
+  <g>
+    <rect x="800" y="300" width="180" height="80" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+    <rect x="800" y="300" width="180" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+    <text x="890" y="320" text-anchor="middle" font-size="15" fill="#111133">ML engineer</text>
+    <text x="890" y="360" text-anchor="middle" font-size="12" fill="#555566">alert recipient</text>
+  </g>
+
+  <!-- Arrows in -->
+  <line x1="220" y1="150" x2="418" y2="150" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="320" y="125" text-anchor="middle" font-size="13" fill="#111133">articles</text>
+  <text x="320" y="142" text-anchor="middle" font-size="12" fill="#555566">monthly batches + requests</text>
+
+  <line x1="220" y1="310" x2="418" y2="310" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="320" y="285" text-anchor="middle" font-size="13" fill="#111133">labels</text>
+  <text x="320" y="302" text-anchor="middle" font-size="12" fill="#555566">final category ≤ 24 h</text>
+
+  <!-- Arrows out -->
+  <line x1="620" y1="100" x2="798" y2="100" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="710" y="75" text-anchor="middle" font-size="13" fill="#111133">predictions</text>
+  <text x="710" y="92" text-anchor="middle" font-size="12" fill="#555566">top-3 + model_version</text>
+
+  <line x1="620" y1="220" x2="798" y2="220" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="710" y="212" text-anchor="middle" font-size="13" fill="#111133">explanation</text>
+
+  <line x1="620" y1="340" x2="798" y2="340" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="710" y="315" text-anchor="middle" font-size="13" fill="#111133">alerts</text>
+  <text x="710" y="332" text-anchor="middle" font-size="12" fill="#555566">email</text>
+
+  <text x="500" y="435" text-anchor="middle" font-size="12" letter-spacing="2" fill="#666677">ONE BOX. EVERYTHING OUTSIDE IT BELONGS TO SOMEONE ELSE</text>
+</svg>

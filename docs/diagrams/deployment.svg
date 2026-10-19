@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 440" width="1000" height="440" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#111133"/></marker></defs>
+<rect width="1000" height="440" fill="#ffffff"/>
+<rect x="30" y="40" width="820" height="330" fill="#ffffff" stroke="#111133" stroke-width="1.5"/>
+<rect x="30" y="40" width="820" height="36" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+<text x="45" y="63" font-size="15" fill="#111133">Laptop / Minikube 1.33.1</text>
+<text x="838" y="58" text-anchor="end" font-size="10" fill="#555566">cluster ≈ GKE</text>
+<text x="838" y="70" text-anchor="end" font-size="10" fill="#555566">built-in container registry ≈ Artifact Registry</text>
+<rect x="55" y="100" width="180" height="44" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+<text x="145" y="118" text-anchor="middle" font-size="13" fill="#111133">MinIO</text>
+<text x="145" y="134" text-anchor="middle" font-size="10" fill="#333344">+ DVC remote</text>
+<text x="145" y="160" text-anchor="middle" font-size="10" fill="#555566">Cloud Storage</text>
+<text x="145" y="173" text-anchor="middle" font-size="10" fill="#555566">GCS remote (DVC)</text>
+<rect x="255" y="100" width="180" height="44" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+<text x="345" y="118" text-anchor="middle" font-size="13" fill="#111133">PostgreSQL 16</text>
+<text x="345" y="134" text-anchor="middle" font-size="10" fill="#333344">+ pgvector 0.8.7</text>
+<text x="345" y="160" text-anchor="middle" font-size="10" fill="#555566">Cloud SQL</text>
+<text x="345" y="173" text-anchor="middle" font-size="10" fill="#555566">Vertex AI Vector Search</text>
+<rect x="455" y="100" width="180" height="44" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+<text x="545" y="118" text-anchor="middle" font-size="13" fill="#111133">Airflow 3.3.1</text>
+<text x="545" y="134" text-anchor="middle" font-size="10" fill="#333344">LocalExecutor</text>
+<text x="545" y="160" text-anchor="middle" font-size="10" fill="#555566">Managed Service for</text>
+<text x="545" y="173" text-anchor="middle" font-size="10" fill="#555566">Apache Airflow</text>
+<rect x="55" y="220" width="180" height="44" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+<text x="145" y="238" text-anchor="middle" font-size="13" fill="#111133">MLflow 3.16.1</text>
+<text x="145" y="254" text-anchor="middle" font-size="10" fill="#333344">tracking + registry</text>
+<text x="145" y="280" text-anchor="middle" font-size="10" fill="#555566">Vertex AI Experiments</text>
+<text x="145" y="293" text-anchor="middle" font-size="10" fill="#555566">+ Model Registry</text>
+<rect x="255" y="220" width="180" height="44" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+<text x="345" y="238" text-anchor="middle" font-size="13" fill="#111133">Feast 0.66.0</text>
+<text x="345" y="254" text-anchor="middle" font-size="10" fill="#333344">feature store</text>
+<text x="345" y="280" text-anchor="middle" font-size="10" fill="#555566">Vertex AI Feature Store</text>
+<rect x="455" y="220" width="180" height="44" fill="#dff0fb" stroke="#111133" stroke-width="1"/>
+<text x="545" y="238" text-anchor="middle" font-size="13" fill="#111133">Monitoring</text>
+<text x="545" y="254" text-anchor="middle" font-size="10" fill="#333344">Evidently, Prometheus, Grafana</text>
+<text x="545" y="280" text-anchor="middle" font-size="10" fill="#555566">Vertex AI Model Monitoring</text>
+<text x="545" y="293" text-anchor="middle" font-size="10" fill="#555566">Cloud Monitoring</text>
+<rect x="665" y="100" width="170" height="120" fill="#1a3fae" stroke="#111133" stroke-width="1.5"/>
+<rect x="665" y="100" width="170" height="32" fill="#eeeef2" stroke="#111133" stroke-width="1.5"/>
+<text x="750" y="121" text-anchor="middle" font-size="13" fill="#111133">Prediction service</text>
+<text x="750" y="172" text-anchor="middle" font-size="13" fill="#ffffff">API + model</text>
+<text x="750" y="238" text-anchor="middle" font-size="10" fill="#555566">GKE</text>
+<rect x="875" y="120" width="115" height="70" fill="#ffffff" stroke="#111133" stroke-width="1.5" stroke-dasharray="5 3"/>
+<rect x="875" y="120" width="115" height="30" fill="#eeeef2" stroke="#111133" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="932.5" y="140" text-anchor="middle" font-size="13" fill="#111133">LLM API</text>
+<text x="932.5" y="175" text-anchor="middle" font-size="11" fill="#333344">hosted</text>
+<text x="932.5" y="208" text-anchor="middle" font-size="10" fill="#555566">Vertex AI</text>
+<text x="932.5" y="221" text-anchor="middle" font-size="10" fill="#555566">generative AI</text>
+<line x1="835" y1="165" x2="873" y2="165" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="45" y="356" font-size="11" fill="#555566">first draft: replaced by the real cluster topology later</text>
+<text x="500" y="412" text-anchor="middle" font-size="12" letter-spacing="2" fill="#666677">NAME EVERY COMPONENT AND ITS MANAGED EQUIVALENT</text>
+</svg>
