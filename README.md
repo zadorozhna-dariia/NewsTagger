@@ -15,6 +15,19 @@ make lint    # runs ruff
 
 Design document: [docs/design.md](docs/design.md)
 
+## Data
+
+Raw data: HuffPost News Category Dataset v3 (87 MB, not sampled), versioned with DVC 3.67.1. Remote: MinIO (S3-compatible) in Docker, bucket `dvc`.
+
+```bash
+cp .env.example .env
+docker compose up -d
+make setup
+make data-pull
+```
+
+Expected file: `data/raw/News_Category_Dataset_v3.json`, md5 `bcd4791916daeac3fa5dc76786dd8bd5`.
+
 ## Maturity scorecard
 
 | Property | Evidence a reviewer checks | Added in |

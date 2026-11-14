@@ -62,7 +62,8 @@
   <text x="710" y="92" text-anchor="middle" font-size="12" fill="#555566">top-3 + model_version</text>
 
   <line x1="620" y1="220" x2="798" y2="220" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="710" y="212" text-anchor="middle" font-size="13" fill="#111133">explanation</text>
+  <text x="710" y="195" text-anchor="middle" font-size="13" fill="#111133">second opinion</text>
+  <text x="710" y="212" text-anchor="middle" font-size="12" fill="#555566">category + confidence</text>
 
   <line x1="620" y1="340" x2="798" y2="340" stroke="#111133" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="710" y="315" text-anchor="middle" font-size="13" fill="#111133">alerts</text>

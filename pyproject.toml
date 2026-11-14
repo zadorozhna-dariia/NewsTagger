@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "KSE MLOps course project: one ML system built over five labs"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "dvc==3.67.1",
+    "dvc-s3==3.3.0",
+]
 
 [dependency-groups]
 dev = [

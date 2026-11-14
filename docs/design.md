@@ -35,7 +35,7 @@ A one-off notebook could classify the 2012–2018 archive once, but it would be 
 | FR3 | Batch scoring | Scheduler, nightly | articles not scored online | predictions in the database |
 | FR4 | Retrain | Scheduler, monthly | new month of labeled articles | candidate model compared with current model |
 | FR5 | Monitor | Scheduler, daily | predictions, inputs, labels | drift and quality report; alert to ML engineer |
-| FR6 | Explain | Editor, from article form | article_id | short justification citing similar past articles |
+| FR6 | Second opinion | Editor, from article form | article_id | Jev's category with calibrated confidence, using similar past articles as context |
 
 ### 4.2 Non-functional
 
@@ -51,7 +51,7 @@ A one-off notebook could classify the 2012–2018 archive once, but it would be 
 
 ### 4.3 Scope
 
-**In scope:** one category per article for English-language articles, from headline and short description; real-time suggestions plus nightly batch scoring; monthly retraining; drift and quality monitoring with alerts; LLM explanation of suggestions; an agent that can look up and correct predictions.
+**In scope:** one category per article for English-language articles, from headline and short description; real-time suggestions plus nightly batch scoring; monthly retraining; drift and quality monitoring with alerts; zero-shot second opinion from Jev; an agent that can look up and correct predictions.
 
 **Out of scope:** full article text (not in the dataset); several categories per article; languages other than English; reader personalization and recommendations; integration with a real CMS (simulated by replaying the dataset).
 
@@ -82,13 +82,13 @@ Multi-class, single-label text classification. Input: headline and short descrip
 - **Time axis:** `date` on every row, so monthly batches come directly from the data and none have to be manufactured.
 - **Holdout period:** train 2012-01 → 2016-12, validate 2017, test 2018-01 → 2018-05. **Assumption:** most rows date from 2012–mid 2018; later months are sparser and are used as the future stream for drift replay.
 - **Label delay:** immediate in the dataset; assumed ≤ 24 h in the system (editor decision).
-- **Text corpus:** the articles themselves (headline and description) serve as the retrieval corpus for the LLM component.
+- **Text corpus:** the articles themselves (headline and description) serve as the retrieval corpus for the Jev comparison.
 
 ### 5.3 Techniques
 
 1. **Trivial baseline:** always predict the most frequent category in the training window (POLITICS).
 2. **Candidate:** TF-IDF on headline + short description, followed by logistic regression with class weights for imbalance.
-3. **Later:** an LLM with retrieval of similar past articles, compared against the candidate.
+3. **Later:** Jev, a zero-shot classifier given retrieved similar articles as context, compared against the candidate.
 
 | Feature | Training source | Serving-time source |
 |---|---|---|
@@ -140,8 +140,8 @@ Multi-class, single-label text classification. Input: headline and short descrip
 | Cluster | runs the prediction service | Minikube 1.33.1 | GKE |
 | Model monitoring | drift reports | Evidently | Vertex AI Model Monitoring |
 | Metrics and dashboards | latency, errors, alerts | Prometheus, Grafana | Cloud Monitoring |
-| Vector store | similar past articles for the LLM | pgvector 0.8.7 | Vertex AI Vector Search |
-| LLM inference | explanations | hosted LLM API | Vertex AI generative AI |
+| Vector store | similar past articles for Jev | pgvector 0.8.7 | Vertex AI Vector Search |
+| Zero-shot classifier | second opinion | Jev API (TypeSafe AI) | none: third-party API, called the same from any cloud |
 
 ### 6.3 Performance
 
@@ -151,15 +151,15 @@ Multi-class, single-label text classification. Input: headline and short descrip
 |---|---|
 | p95 latency per request | ≤ 300 ms: ~20 ms feature lookup, ~10 ms model, rest network and serialization |
 | Throughput | ~0.1 requests/s sustained, 1 request/s peak; one replica with 0.5 CPU and 512 MB RAM |
-| LLM explanation | asynchronous, excluded from the latency budget |
+| Jev second opinion | asynchronous (70–500 ms per call), excluded from the latency budget |
 
 ### 6.4 Security
 
-Secrets (database password, MinIO keys, LLM API key) are kept in a git-ignored `.env` file locally, in Kubernetes Secrets on Minikube, and in Secret Manager in the cloud; none are committed. The prediction service is reachable only inside the cluster and requires an API key from the CMS. MLflow, Airflow and Grafana interfaces are bound to localhost.
+Secrets (database password, MinIO keys, Jev API key) are kept in a git-ignored `.env` file locally, in Kubernetes Secrets on Minikube, and in Secret Manager in the cloud; none are committed. The prediction service is reachable only inside the cluster and requires an API key from the CMS. MLflow, Airflow and Grafana interfaces are bound to localhost.
 
 ### 6.5 Data privacy
 
-The dataset contains public headlines and descriptions, and author names, which are personal data under GDPR even though they are public bylines. Author names are used only for the aggregated author feature and are not sent to the LLM. No reader data is collected. Data is kept until the end of the course (January 2027) and then deleted, including the DVC remote. The dataset is licensed CC BY 4.0; attribution is given in the README.
+The dataset contains public headlines and descriptions, and author names, which are personal data under GDPR even though they are public bylines. Author names are used only for the aggregated author feature. Headlines and descriptions are sent to the Jev API (third party); author names are not. No reader data is collected. Data is kept until the end of the course (January 2027) and then deleted, including the DVC remote. The dataset is licensed CC BY 4.0; attribution is given in the README.
 
 ### 6.6 Monitoring and alarms
 
@@ -189,13 +189,13 @@ Estimated with the [Google Cloud pricing calculator](https://cloud.google.com/pr
 | Agent Platform Vector Search | 1 × e2-standard-2 node; 210k vectors × 384 dims, rebuilt monthly | 76.24 |
 | GKE | 1 zonal cluster, 2 × e2-medium, 30 GB standard disks | 128.01 |
 | Cloud SQL for PostgreSQL | micro instance, 20 GB | 11.07 |
-| Gemini 3.1 Flash Lite | 3,000 requests × 1,500 input + 200 output tokens | 2.05 |
+| Jev API (TypeSafe AI) | 3,000 requests/month; **Assumption:** price not published, to be measured | — |
 | Artifact Registry | 5 GB | 0.45 |
 | Cloud Storage | 10 GB standard | 0.10 |
 | Cloud Monitoring | 10 custom metrics | 0.00 |
 | Secret Manager | 5 secrets, 10k accesses | 0.00 |
-| **Total (calculator)** | | **816.52** |
-| **Total after GKE free-tier credit** (−$73 zonal cluster fee) | | **≈ 744** |
+| **Total (calculator)** | | **814.47** |
+| **Total after GKE free-tier credit** (−$73 zonal cluster fee) | | **≈ 742** |
 
 **Assumptions:** 100 articles/day; all services always on; no committed-use discounts.
 
@@ -218,7 +218,7 @@ Four always-on services (Airflow, Feature Store, Vector Search, GKE cluster fee)
 | Renamed or merged categories | versioned category mapping; quality gate rejects unknown categories |
 | Label leakage via `link` or same-story duplicates | `link` dropped in preprocessing; time-based split |
 | Inconsistent labels between similar sections | review the confusion matrix; merge consistently confused sections |
-| Headline-only articles give too little text | top-3 suggestions; comparison with the LLM component |
+| Headline-only articles give too little text | top-3 suggestions; comparison with Jev |
 | Laptop resources too small for the full stack | Minikube capped at 4 GB; Airflow LocalExecutor; start services on demand |
 | Cloud cost above estimate | replace the managed feature store with Cloud SQL first (−$219/month) |
 
@@ -232,6 +232,7 @@ Four always-on services (Airflow, Feature Store, Vector Search, GKE cluster fee)
 | Fine-tuned DistilBERT instead of TF-IDF + logistic regression | likely higher macro-F1 | slow CPU training and inference, harder to retrain monthly on a laptop | the simple model meets the latency budget and is easy to rebuild |
 | Streaming ingestion (Kafka + Spark) | realistic for large publishers | heavy local footprint | ~0.1 requests/s needs no streaming; batch + online API meets freshness |
 | AWS instead of GCP | most widely used cloud | higher estimate for the same managed services | GCP estimate fits the cost ceiling |
+| Generative LLM for text explanations | readable reasons for editors | slower, costlier, free text is hard to evaluate | Jev returns typed, calibrated outputs that can be scored like the model |
 
 ### 7.2 Experiment results
 
@@ -244,6 +245,6 @@ To be filled in Lab 4: measured p50/p95 latency and throughput of the prediction
 ### 7.4 Milestones
 
 - **Lab 2:** monthly ingestion with DVC versioning and the quality gate; baseline and TF-IDF + logistic regression tracked and registered in MLflow.
-- **Lab 3:** LLM component that retrieves similar past articles from pgvector to explain suggestions, evaluated against the Lab 2 model with cost and latency recorded.
+- **Lab 3:** Jev as a zero-shot baseline with retrieved similar articles, compared with the Lab 2 model on macro-F1, cost and latency.
 - **Lab 4:** prediction service and batch job containerized and deployed on Minikube with health checks, plus scheduled drift monitoring and alerts.
-- **Lab 5:** an agent that lets editors look up a prediction and its explanation, find similar articles and submit a category correction.
+- **Lab 5:** an agent that lets editors look up a prediction and Jev's second opinion, find similar articles and submit a category correction.
