@@ -18,8 +18,17 @@ data-pull:
 
 .PHONY: data-push data-pull
 
-# Train and evaluate on the time split; reads the features table from Postgres (docker compose)
+# Training reads the features table from Postgres and logs every run to MLflow (docker compose)
 train:
-	set -a && . ./.env && set +a && uv run python src/train.py
+	$(DVC_ENV) uv run python src/train.py
 
-.PHONY: train
+register:
+	$(DVC_ENV) uv run python src/train.py --register
+
+promote:
+	$(DVC_ENV) uv run python src/promote.py $(VERSION)
+
+reproduce:
+	$(DVC_ENV) uv run python src/reproduce.py $(VERSION)
+
+.PHONY: train register promote reproduce
