@@ -64,11 +64,19 @@ Multi-class, single-label text classification. Input: headline and short descrip
 
 ### 5.2 Data
 
-**Source:** News Category Dataset v3 (R. Misra, Kaggle `rmisra/news-category-dataset`, CC BY 4.0): ~210k HuffPost articles, 2012–2022. Fields: `category, headline, short_description, authors, date, link`.
+**Source:** News Category Dataset v3 (R. Misra, Kaggle `rmisra/news-category-dataset`, CC BY 4.0): 209,527 HuffPost articles, 2012-01 → 2022-09, 87 MB JSON lines, not sampled. Fields: `category, headline, short_description, authors, date, link`.
 
-**Arrival pattern:** the dataset is replayed as monthly batches ordered by `date`, emulating a live feed.
+**Data version in use:** DVC md5 `bcd4791916daeac3fa5dc76786dd8bd5`, remote `s3://dvc` on MinIO.
+
+**Batch grain:** one calendar month, `[data_interval_start, data_interval_end)` in UTC, taken from the Airflow run (monthly `CronDataIntervalTimetable`); never from the current time.
+
+**Arrival pattern:** the dataset is replayed as monthly batches, emulating a live feed. Rows per year: ~30,000–34,500 in 2012–2017, 9,734 in 2018, ~1,400–2,100 in 2019–2022.
 
 **Labels and delay:** the label is the editor's final category. In the dataset it is present immediately; in the system it arrives ≤ 24 h after the prediction.
+
+**Layers:** raw JSON (DVC) → monthly staging Parquet (`raw.parquet`, `clean.parquet`) → PostgreSQL `clean_articles` → PostgreSQL `features`.
+
+**Cleaning (whole dataset):** 6 rows with an empty headline dropped; 112 exact duplicates (headline, description, date) dropped; 19,712 empty descriptions kept as empty text; 37,418 empty authors set to `unknown`; `link` dropped. Renamed sections merged via `dags/category_map.yaml` (26,712 rows, 42 → 33 categories).
 
 | Field | Training | Serving |
 |---|---|---|
@@ -80,29 +88,37 @@ Multi-class, single-label text classification. Input: headline and short descrip
 
 **Data checklist:**
 - **Time axis:** `date` on every row, so monthly batches come directly from the data and none have to be manufactured.
-- **Holdout period:** train 2012-01 → 2016-12, validate 2017, test 2018-01 → 2018-05. **Assumption:** most rows date from 2012–mid 2018; later months are sparser and are used as the future stream for drift replay.
+- **Holdout period:** train 2012-01 → 2016-12 (162,271 rows), validate 2017 (29,882), test 2018-01 → 2018-05 (8,606). Later months are sparse and are kept as the future stream for drift replay.
 - **Label delay:** immediate in the dataset; assumed ≤ 24 h in the system (editor decision).
 - **Text corpus:** the articles themselves (headline and description) serve as the retrieval corpus for the Jev comparison.
 
 ### 5.3 Techniques
 
-1. **Trivial baseline:** always predict the most frequent category in the training window (POLITICS).
-2. **Candidate:** TF-IDF on headline + short description, followed by logistic regression with class weights for imbalance.
+1. **Rule baselines:** the majority class of the training window (WELLNESS), and an author rule: the author's most frequent past category, else WELLNESS.
+2. **Candidate:** TF-IDF on `text` (word 1–2-grams, `min_df=2`, at most 200,000 terms, sublinear tf) followed by logistic regression (`C=4`, class weights for imbalance), saved as one scikit-learn pipeline.
 3. **Later:** Jev, a zero-shot classifier given retrieved similar articles as context, compared against the candidate.
 
-| Feature | Training source | Serving-time source |
-|---|---|---|
-| TF-IDF of headline + short_description | dataset fields | request body |
-| day_of_week, month | `date` | `submitted_at` in request |
-| author_top_category | computed from articles before the split date | feature store online table, refreshed daily; new author → "unknown" |
+Table `features`, one row per article, `feature_version = v1`:
+
+| Feature | Computed from | Serving-time source | Used by |
+|---|---|---|---|
+| `text` | headline + " " + short_description | request body | candidate |
+| `has_description` | short_description is non-empty | request body | not yet |
+| `day_of_week`, `month` | `date` | `submitted_at` in the request | not yet |
+| `author_top_category` | the author's most frequent category in months before the article's month (windowed aggregate built by the pipeline) | lookup in PostgreSQL by author, as of the previous month; new author → `unknown` | author rule |
+| `author_n_articles` | the author's article count in months before the article's month | same lookup; new author → 0 | not yet |
+
+`author_top_category` is the feature whose training and serving sources differ: in training it is computed per month from history before that month (point-in-time correct); at serving it is read from the lookup as of the previous month.
 
 ### 5.4 Experimentation and validation
 
-**Split:** train 2012-01 → 2016-12, validation 2017 (tuning), test 2018-01 → 2018-05 (reported once). A random split would put articles about the same story on both sides and overstate the score. Author features are computed only from data before each split boundary.
+**Split:** by date. Train 2012-01 → 2016-12 (162,271 rows), validation 2017 (29,882), test 2018-01 → 2018-05 (8,606, reported once). Model settings are fixed; validation is reported, not used for tuning. Author features use only months before each article's month, so no split sees the future.
+
+**Why not a random split:** articles about the same story would land on both sides and overstate the score, and it would hide drift that the time split shows: WELLNESS, the majority class of 2012–2016, is 0.2 % of 2018 articles, and `U.S. NEWS` first appears in May 2018 (11 test articles no model trained on the past can predict).
 
 **Offline metric:** macro-F1 (primary), top-3 accuracy (secondary).
 
-**New vs current model (champion / challenger):** each month the challenger is trained on data up to month M−1, and both models are scored on month M. The challenger is promoted only if its macro-F1 is ≥ champion + 0.01 and no category with ≥ 50 test articles loses more than 0.05 recall.
+**New vs current model (champion / challenger):** each month the challenger is trained on data up to month M−1, and both models are scored on month M. The challenger is promoted only if its macro-F1 is ≥ champion + 0.01 and no category with ≥ 50 test articles loses more than 0.05 recall. Mechanics: `make register` adds a version with lineage tags; the ML engineer reviews it and runs `make promote VERSION=n`; `make reproduce VERSION=n` rebuilds any version from its commit and data and must match its test macro-F1 within 0.005.
 
 ### 5.5 Human in the loop
 
@@ -122,26 +138,40 @@ Multi-class, single-label text classification. Input: headline and short descrip
 
 ![Data flow](diagrams/data-flow.svg)
 
+#### Data layers
+
+![Data layers](diagrams/data-layers.svg)
+
+#### Pipeline task graph
+
+![Pipeline task graph](diagrams/task-graph.svg)
+
+#### Tracking server and registry
+
+![Tracking server and registry](diagrams/tracking-registry.svg)
+
 #### Deployment (first draft)
 
 ![Deployment](diagrams/deployment.svg)
 
 ### 6.2 Infra
 
-| Component | Role in NewsTagger | Local (pinned) | GCP |
-|---|---|---|---|
-| Object storage | raw batches, cleaned data, model artifacts | MinIO-compatible `pgsty/silo` | Cloud Storage |
-| Data versioning | snapshot of each raw batch | DVC 3.67.1 + dvc-s3 3.3.0, remote on MinIO | GCS remote |
-| Database | predictions, labels, feature store online table | PostgreSQL 16 | Cloud SQL |
-| Orchestrator | monthly ingest and retrain, nightly batch scoring | Airflow 3.3.1, LocalExecutor | Managed Service for Apache Airflow (formerly Cloud Composer) |
-| Experiment tracking and registry | training runs, `champion` model | MLflow 3.16.1 | Vertex AI Experiments and Model Registry |
-| Feature store | author_top_category, offline and online | Feast 0.66.0 | Vertex AI Feature Store |
-| Container registry | images of the prediction service | Minikube built-in registry | Artifact Registry |
-| Cluster | runs the prediction service | Minikube 1.33.1 | GKE |
-| Model monitoring | drift reports | Evidently | Vertex AI Model Monitoring |
-| Metrics and dashboards | latency, errors, alerts | Prometheus, Grafana | Cloud Monitoring |
-| Vector store | similar past articles for Jev | pgvector 0.8.7 | Vertex AI Vector Search |
-| Zero-shot classifier | second opinion | Jev API (TypeSafe AI) | none: third-party API, called the same from any cloud |
+Local stack runs with `docker compose` (`docker-compose.yml`); secrets come from `.env` (template `.env.example`).
+
+| Component | Role in NewsTagger | Local (pinned) | GCP | Status |
+|---|---|---|---|---|
+| Object storage | DVC remote (bucket `dvc`), MLflow artifacts (bucket `mlflow`) | MinIO-compatible `pgsty/silo:RELEASE.2026-09-16T00-00-00Z`, ports 9000/9001 | Cloud Storage | running |
+| Data versioning | raw dataset, md5 `bcd4791…` | DVC 3.67.1 + dvc-s3 3.3.0, remote `s3://dvc` | GCS remote | running |
+| Database | `newstagger` (clean_articles, features, author_stats, Feast online schema), `airflow`, `mlflow` | PostgreSQL 16, host port 5433 | Cloud SQL | running |
+| Orchestrator | DAG `newstagger_etl`: monthly batches, backfills | Airflow 3.3.1, LocalExecutor (api-server, scheduler, dag-processor), UI on 8080 | Managed Service for Apache Airflow (formerly Cloud Composer) | running |
+| Experiment tracking and registry | runs with lineage tags; `newstagger-classifier@champion` | MLflow 3.16.1 server (official image + psycopg2, boto3), Postgres backend, MinIO artifacts served through the server, UI on 5001 | Vertex AI Experiments and Model Registry | running |
+| Feature store | entity `author`, feature view `author_stats` | Feast 0.66.0: offline store = Postgres `author_stats`, online store = Postgres schema `feast_online` | Vertex AI Feature Store | running |
+| Container registry | images of the prediction service | Minikube built-in registry | Artifact Registry | planned |
+| Cluster | runs the prediction service | Minikube 1.33.1 | GKE | planned |
+| Model monitoring | drift reports | Evidently | Vertex AI Model Monitoring | planned |
+| Metrics and dashboards | latency, errors, alerts | Prometheus, Grafana | Cloud Monitoring | planned |
+| Vector store | similar past articles for Jev | pgvector 0.8.7 | Vertex AI Vector Search | planned |
+| Zero-shot classifier | second opinion | Jev API (TypeSafe AI) | none: third-party API, called the same from any cloud | planned |
 
 ### 6.3 Performance
 
@@ -155,11 +185,15 @@ Multi-class, single-label text classification. Input: headline and short descrip
 
 ### 6.4 Security
 
-Secrets (database password, MinIO keys, Jev API key) are kept in a git-ignored `.env` file locally, in Kubernetes Secrets on Minikube, and in Secret Manager in the cloud; none are committed. The prediction service is reachable only inside the cluster and requires an API key from the CMS. MLflow, Airflow and Grafana interfaces are bound to localhost.
+**Secrets:** database, MinIO and Airflow secrets live in a git-ignored `.env`; `.env.example` holds placeholders only. Compose passes them to containers as environment variables; Airflow reaches Postgres through `AIRFLOW_CONN_NEWSTAGGER_DB`, so no password appears in DAG code. Airflow's JWT secret and `[api] secret_key` are random values shared by all Airflow containers. On Minikube secrets become Kubernetes Secrets, in the cloud Secret Manager.
+
+**Access:** all published ports are bound to `127.0.0.1`, so the Airflow UI (no login, all users admin), MLflow (no login), MinIO and Postgres are reachable only from the local machine. Local Postgres connections are unencrypted (`sslmode: disable`); in the cloud TLS is required. The prediction service will be reachable only inside the cluster and require an API key from the CMS.
+
+**Model artifacts:** MLflow stores the model in the skops format, which does not execute code when loaded, unlike pickle; only versions registered from committed code can be promoted.
 
 ### 6.5 Data privacy
 
-The dataset contains public headlines and descriptions, and author names, which are personal data under GDPR even though they are public bylines. Author names are used only for the aggregated author feature. Headlines and descriptions are sent to the Jev API (third party); author names are not. No reader data is collected. Data is kept until the end of the course (January 2027) and then deleted, including the DVC remote. The dataset is licensed CC BY 4.0; attribution is given in the README.
+The dataset contains public headlines and descriptions, and author names, which are personal data under GDPR even though they are public bylines. Author names are kept in the raw file (local and DVC remote), the monthly staging files, `clean_articles`, `author_stats` and the Feast online store, where they are the lookup key; they are used only for the aggregated author features. Pipeline logs contain row counts only. The model is trained on `text` alone; its vocabulary can include names of people mentioned in headlines. Headlines and descriptions are sent to the Jev API (third party); author names are not. No reader data is collected. Data is kept until the end of the course (January 2027), then deleted with `docker compose down -v` (Postgres, MinIO, Airflow volumes) and by removing `data/`. The dataset is licensed CC BY 4.0; attribution is given in the README.
 
 ### 6.6 Monitoring and alarms
 
@@ -205,10 +239,11 @@ Four always-on services (Airflow, Feature Store, Vector Search, GKE cluster fee)
 
 | Party | Direction | Contract |
 |---|---|---|
-| CMS article feed | upstream: articles | JSON with `article_id, headline, short_description, authors, submitted_at`; schema changes announced ≥ 2 weeks ahead; unannounced changes fail the quality gate |
-| Editors (via CMS) | upstream: labels | `article_id, final_category, decided_at` within 24 h; category must be in the current category list |
-| CMS | downstream: predictions | `POST /predict` returns top-3 and `model_version` within 1 s; no answer means no suggestion |
-| ML engineer | downstream: alerts | email with signal, value and threshold; response within 1 working day |
+| CMS article feed (replayed from the DVC-tracked dataset) | upstream: articles | JSON lines with `headline, short_description, authors, category, date`; a month's batch is complete before its run starts (runs start after the month ends). Enforced by `validate`: required columns present, every `date` inside the run's month, empty-headline rate ≤ 1 %; a failing batch stops the run before anything is loaded. Schema changes announced ≥ 2 weeks ahead. |
+| Editors (via CMS) | upstream: labels | `article_id, final_category, decided_at` within 24 h; category must be in the current category list; renamed sections are mapped by `dags/category_map.yaml`. |
+| Prediction service | downstream: model and features | loads `models:/newstagger-classifier@champion` from MLflow; reads `author_top_category` and `author_n_articles` from the Feast online store by `authors`, falling back to `unknown` / 0. |
+| CMS | downstream: predictions | `POST /predict` returns top-3 and `model_version` within 1 s; no answer means no suggestion. |
+| ML engineer | downstream: alerts | a failed `validate` or `quality_check` task in Airflow names every failed check; email with signal, value and threshold is planned with monitoring. |
 
 ### 6.9 Risks and uncertainties
 
@@ -236,7 +271,19 @@ Four always-on services (Airflow, Feature Store, Vector Search, GKE cluster fee)
 
 ### 7.2 Experiment results
 
-To be filled in Lab 2: baseline and candidate macro-F1 and top-3 accuracy on the 2018 test period.
+From MLflow experiment `newstagger` (time split of 5.4; test = 2018-01 → 2018-05, 8,606 articles):
+
+| Model | Valid macro-F1 | Test macro-F1 | Test accuracy | Test top-3 |
+|---|---|---|---|---|
+| Majority class (WELLNESS) | 0.003 | 0.000 | 0.002 | n/a |
+| Author rule | 0.366 | 0.248 | 0.494 | n/a |
+| TF-IDF + logistic regression | 0.388 | 0.324 | 0.616 | 0.860 |
+
+**Registered:** `newstagger-classifier` version 2 = `@champion`, run `852cbbb2`, tags `data_version=bcd4791…`, `git_commit=7c08e96`, `feature_version=v1`, `features_checksum=a12d6111…`.
+
+**Reproduced:** `make reproduce VERSION=2` (run `e35521e7`, tag `reproduces_version=2`) gave test macro-F1 0.3238 vs 0.3238, |diff| 0.0000 within the 0.005 tolerance.
+
+**Against the targets (section 3):** macro-F1 ≥ trivial baseline + 0.10 met (0.324 vs 0.000); top-3 accuracy ≥ 0.85 met (0.860). The author rule, using no text, comes within 0.022 of the model on validation; on test the model leads by 0.076. 11 test articles are `U.S. NEWS`, a category absent from training, and are always misclassified.
 
 ### 7.3 Performance benchmarks
 
