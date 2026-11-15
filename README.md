@@ -48,6 +48,7 @@ The full history rerun as a second backfill (`--reprocess-behavior completed`) l
 **Quality gate.** Tested by triggering April 2015 (logical date 2015-05-01) with the run parameter `inject_fault = empty_headlines`, which blanks every second headline of that run's staging copy only (1,287 of 2,573). `validate` failed with `Validation failed: empty headline rate 50.0% > 1%`; `transform`, `load` and `quality_check` never ran, and no April rows reached the database. Gates fail without retry.
 
 ![Failed validate task](docs/img/gate-failed.png)
+![Validate log with the failed check](docs/img/gate-failed-log.png)
 ![Successful run graph](docs/img/run-success.png)
 
 ## Features (step 4)
