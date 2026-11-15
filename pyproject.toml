@@ -7,6 +7,9 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "dvc==3.67.1",
     "dvc-s3==3.3.0",
+    "pandas>=3.1.1",
+    "psycopg[binary]>=3.3.9",
+    "scikit-learn>=1.9.1",
 ]
 
 [dependency-groups]

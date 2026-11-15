@@ -17,3 +17,9 @@ data-pull:
 	$(DVC_ENV) uv run dvc pull
 
 .PHONY: data-push data-pull
+
+# Train and evaluate on the time split; reads the features table from Postgres (docker compose)
+train:
+	set -a && . ./.env && set +a && uv run python src/train.py
+
+.PHONY: train
