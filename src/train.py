@@ -133,6 +133,10 @@ def evaluate(train, valid, test):
 
     started = time.time()
     model = build_model().fit(train["text"], train["category"])
+    # MLflow saves sklearn models with skops, which writes every numpy scalar as its own file;
+    # with numpy ints in the 200k-term vocabulary that takes minutes. Plain ints save in seconds.
+    vectorizer = model.named_steps["tfidfvectorizer"]
+    vectorizer.vocabulary_ = {term: int(index) for term, index in vectorizer.vocabulary_.items()}
     metrics["train_seconds"] = time.time() - started
     metrics["valid_macro_f1"] = macro_f1(valid["category"], model.predict(valid["text"]))
     metrics["test_macro_f1"] = macro_f1(test["category"], model.predict(test["text"]))
