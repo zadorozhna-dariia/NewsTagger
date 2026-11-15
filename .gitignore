@@ -8,3 +8,4 @@ mlruns/
 .idea/
 data/staging/
 .reproduce/
+feature_repo/data/

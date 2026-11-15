@@ -1,0 +1,25 @@
+# Feast repository for NewsTagger: offline and online stores both live in the project Postgres
+# (docker compose, host port 5433). Credentials come from .env via the environment.
+# sslmode: disable because the local Postgres has no TLS; a managed database would use require.
+project: newstagger
+provider: local
+registry: data/registry.db
+offline_store:
+  type: postgres
+  host: localhost
+  port: 5433
+  database: newstagger
+  db_schema: public
+  sslmode: disable
+  user: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
+online_store:
+  type: postgres
+  host: localhost
+  port: 5433
+  database: newstagger
+  db_schema: feast_online
+  sslmode: disable
+  user: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
+entity_key_serialization_version: 3

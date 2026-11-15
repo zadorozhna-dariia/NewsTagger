@@ -32,3 +32,18 @@ reproduce:
 	$(DVC_ENV) uv run python src/reproduce.py $(VERSION)
 
 .PHONY: train register promote reproduce
+
+# Feast feature store (feature_repo/): offline and online stores in the project Postgres
+feast-apply:
+	$(DVC_ENV) uv run feast -c feature_repo apply
+
+feast-demo:
+	$(DVC_ENV) uv run python src/feast_pit.py
+
+feast-materialize:
+	$(DVC_ENV) uv run feast -c feature_repo materialize 2012-01-01T00:00:00 2018-06-02T00:00:00
+
+feast-online:
+	$(DVC_ENV) uv run python src/feast_pit.py --online "$(AUTHOR)"
+
+.PHONY: feast-apply feast-demo feast-materialize feast-online

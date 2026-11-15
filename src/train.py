@@ -46,18 +46,21 @@ MODEL_PARAMS = {
 }
 
 
-def load_features():
-    url = (
+def db_url():
+    return (
         f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}"
         f"@{os.environ.get('POSTGRES_HOST', 'localhost')}:{os.environ.get('POSTGRES_PORT', '5433')}"
         "/newstagger"
     )
+
+
+def load_features():
     columns = ["article_id", "date", "text", "author_top_category", "category"]
     query = (
         f"SELECT {', '.join(columns)} FROM features "
         f"WHERE feature_version = %s AND date < %s ORDER BY article_id"
     )
-    with psycopg.connect(url) as conn, conn.cursor() as cur:
+    with psycopg.connect(db_url()) as conn, conn.cursor() as cur:
         cur.execute(query, (FEATURE_VERSION, TEST_END))
         features = pd.DataFrame(cur.fetchall(), columns=columns)
     features["date"] = pd.to_datetime(features["date"])

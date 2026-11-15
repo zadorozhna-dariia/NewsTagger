@@ -42,7 +42,8 @@ SELECT
     count(*) AS row_count,
     count(*) FILTER (WHERE headline = '' OR category = '') AS empty_required,
     count(*) - count(DISTINCT (headline, short_description, date)) AS duplicates,
-    count(*) FILTER (WHERE category = ANY(%s)) AS old_categories
+    count(*) FILTER (WHERE category = ANY(%s)) AS old_categories,
+    count(DISTINCT authors) FILTER (WHERE authors <> 'unknown') AS known_authors
 FROM clean_articles
 WHERE batch_month = %s
 """
@@ -100,6 +101,41 @@ SELECT
 FROM clean_articles a
 LEFT JOIN author_stats s USING (authors)
 WHERE a.batch_month = %(batch_month)s
+"""
+
+# Feast source: one row per author active in the batch month, with stats over all months up to
+# and including it, timestamped when they become known (start of the next month).
+CREATE_AUTHOR_STATS_SQL = """
+CREATE TABLE IF NOT EXISTS author_stats (
+    authors             TEXT NOT NULL,
+    event_timestamp     TIMESTAMPTZ NOT NULL,
+    author_top_category TEXT NOT NULL,
+    author_n_articles   INTEGER NOT NULL,
+    PRIMARY KEY (authors, event_timestamp)
+)
+"""
+
+INSERT_AUTHOR_STATS_SQL = """
+WITH active AS (
+    SELECT DISTINCT authors
+    FROM clean_articles
+    WHERE batch_month = %(batch_month)s AND authors <> 'unknown'
+),
+history AS (
+    SELECT c.authors, c.category, count(*) AS n
+    FROM clean_articles c
+    JOIN active USING (authors)
+    WHERE c.batch_month <= %(batch_month)s
+    GROUP BY c.authors, c.category
+)
+INSERT INTO author_stats (authors, event_timestamp, author_top_category, author_n_articles)
+SELECT
+    authors,
+    %(known_at)s,
+    (array_agg(category ORDER BY n DESC, category))[1],
+    sum(n)
+FROM history
+GROUP BY authors
 """
 
 
@@ -249,14 +285,36 @@ def newstagger_etl():
         return count
 
     @task
-    def quality_check(cleaned, loaded_rows, feature_rows, data_interval_start=None):
+    def build_author_stats(loaded_rows, data_interval_start=None, data_interval_end=None):
+        args = {
+            "batch_month": data_interval_start.strftime("%Y-%m-%d"),
+            "known_at": data_interval_end,
+        }
+
+        conn = PostgresHook(postgres_conn_id=DB_CONN_ID).get_conn()
+        with conn, conn.cursor() as cur:
+            cur.execute(CREATE_AUTHOR_STATS_SQL)
+            cur.execute("DELETE FROM author_stats WHERE event_timestamp = %(known_at)s", args)
+            cur.execute(INSERT_AUTHOR_STATS_SQL, args)
+            count = cur.rowcount
+        conn.close()
+
+        print(f"Built {count} author_stats rows known at {data_interval_end}")
+        return count
+
+    @task
+    def quality_check(
+        cleaned, loaded_rows, feature_rows, author_rows, data_interval_start=None
+    ):
         batch_month = data_interval_start.strftime("%Y-%m-%d")
         old_names = list(yaml.safe_load(CATEGORY_MAP_FILE.read_text()))
 
         conn = PostgresHook(postgres_conn_id=DB_CONN_ID).get_conn()
         with conn, conn.cursor() as cur:
             cur.execute(QUALITY_SQL, (old_names, batch_month))
-            row_count, empty_required, duplicates, old_categories = cur.fetchone()
+            row_count, empty_required, duplicates, old_categories, known_authors = (
+                cur.fetchone()
+            )
         conn.close()
 
         problems = []
@@ -269,6 +327,8 @@ def newstagger_etl():
             )
         if feature_rows != row_count:
             problems.append(f"feature rows {feature_rows} != article rows {row_count}")
+        if author_rows != known_authors:
+            problems.append(f"author_stats rows {author_rows} != active authors {known_authors}")
         if empty_required:
             problems.append(f"{empty_required} rows with empty headline or category")
         if duplicates:
@@ -283,7 +343,7 @@ def newstagger_etl():
 
     cleaned = transform(validate(extract()))
     loaded = load(cleaned)
-    quality_check(cleaned, loaded, build_features(loaded))
+    quality_check(cleaned, loaded, build_features(loaded), build_author_stats(loaded))
 
 
 newstagger_etl()
